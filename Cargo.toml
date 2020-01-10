@@ -24,12 +24,16 @@ version = "1.0"
 default-features = false
 features = ["std"]
 
+[dependencies.chrono]
+version = "0.4"
+default-features = false
+
 [dependencies.futures]
 version = "0.3"
 default-features = false
 
 [dependencies.polyio]
-version = "0.1"
+version = "0.1.1"
 default-features = false
 
 [dependencies.structopt]
