@@ -1,0 +1,52 @@
+[package]
+name = "polycli"
+version = "0.0.0"
+authors = ["Daniel Mueller <deso@posteo.net>"]
+edition = "2018"
+license = "GPL-3.0-or-later"
+homepage = "https://github.com/d-e-s-o/polycli"
+repository = "https://github.com/d-e-s-o/polycli.git"
+readme = "README.md"
+categories = [
+  "api-bindings",
+  "asynchronous",
+  "command-line-utilities",
+  "web-programming::http-client",
+  "web-programming::websocket"
+]
+keywords = ["cli", "finance", "async", "stocks"]
+description = """
+A command line tool for interacting with the Polygon API at polygon.io.
+"""
+
+[dependencies.anyhow]
+version = "1.0"
+default-features = false
+features = ["std"]
+
+[dependencies.futures]
+version = "0.3"
+default-features = false
+
+[dependencies.polyio]
+version = "0.1"
+default-features = false
+
+[dependencies.structopt]
+version = "0.3"
+default-features = false
+
+[dependencies.tokio]
+version = "0.2"
+default-features = false
+features = ["rt-core"]
+
+[dependencies.tracing]
+version = "0.1"
+default-features = false
+features = ["std"]
+
+[dependencies.tracing-subscriber]
+version = "0.1.6"
+default-features = false
+features = ["ansi", "chrono", "env-filter", "fmt"]
