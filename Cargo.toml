@@ -36,6 +36,10 @@ default-features = false
 version = "0.1.1"
 default-features = false
 
+[dependencies.serde_json]
+version = "1.0"
+default-features = false
+
 [dependencies.structopt]
 version = "0.3"
 default-features = false

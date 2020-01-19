@@ -25,6 +25,8 @@ use polyio::Event;
 use polyio::Stock;
 use polyio::Subscription;
 
+use serde_json::to_string as to_json;
+
 use structopt::StructOpt;
 
 use tokio::runtime::Runtime;
@@ -108,6 +110,9 @@ struct Events {
   /// Subscribe to second aggregates for the given stock.
   #[structopt(short = "m", long = "minutely", parse(try_from_str = parse_stock))]
   minutely: Vec<Stock>,
+  /// Print events in JSON format.
+  #[structopt(short = "j", long = "json")]
+  json: bool,
 }
 
 
@@ -189,6 +194,7 @@ fn print_events(events: &[Event]) {
 
 /// The handler for the 'events' command.
 async fn events(client: Client, events: Events) -> Result<(), Error> {
+  let json = events.json;
   let subscriptions = empty()
     .chain(events.trades.into_iter().map(Subscription::Trades))
     .chain(events.quotes.into_iter().map(Subscription::Quotes))
@@ -209,10 +215,17 @@ async fn events(client: Client, events: Events) -> Result<(), Error> {
     .subscribe(subscriptions)
     .await
     .with_context(|| "failed to subscribe to ticker updates")?
+    .map_err(Error::from)
     .try_for_each(|result| {
       async {
         let events = result.unwrap();
-        print_events(&events);
+        if json {
+          let json =
+            to_json(&events).with_context(|| "failed to serialize ticker event to JSON")?;
+          println!("{}", json);
+        } else {
+          print_events(&events);
+        }
         Ok(())
       }
     })
