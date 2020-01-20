@@ -16,10 +16,12 @@ use anyhow::Error;
 
 use chrono::offset::Local;
 use chrono::offset::TimeZone;
+use chrono::DateTime;
 
 use futures::TryStreamExt;
 
 use polyio::api::ticker;
+use polyio::api::ticker_news;
 use polyio::Client;
 use polyio::Event;
 use polyio::Stock;
@@ -68,6 +70,32 @@ enum Ticker {
     /// The ticker symbol to query information about.
     symbol: String,
   },
+  /// Query news items for a specific ticker.
+  News(News),
+}
+
+
+/// An enumeration describing a ticker news request.
+#[derive(Debug, StructOpt)]
+struct News {
+  /// The ticker symbol to retrieve news for.
+  symbol: String,
+  /// The news page to retrieve.
+  #[structopt(short = "p", long = "page", default_value = "1")]
+  page: usize,
+  /// The number of news items to include on a single page.
+  #[structopt(long = "per-page", default_value = "5")]
+  per_page: usize,
+}
+
+impl News {
+  fn into_request(self) -> ticker_news::NewsReq {
+    ticker_news::NewsReq {
+      symbol: self.symbol,
+      page: self.page,
+      per_page: self.per_page,
+    }
+  }
 }
 
 
@@ -116,18 +144,36 @@ struct Events {
 }
 
 
-/// Format a system time as per RFC 2822.
-// TODO: Perhaps it makes more sense to format time in the Eastern time
-//       zone?
-fn format_time(time: &SystemTime) -> Cow<'static, str> {
+/// Convert a `SystemTime` into a `DateTime`.
+fn convert_time(time: &SystemTime) -> Option<DateTime<Local>> {
   match time.duration_since(UNIX_EPOCH) {
     Ok(duration) => {
       let secs = duration.as_secs().try_into().unwrap();
       let nanos = duration.subsec_nanos();
-      Local.timestamp(secs, nanos).to_rfc2822().into()
+      let time = Local.timestamp(secs, nanos);
+      Some(time)
     },
-    Err(..) => "N/A".into(),
+    Err(..) => None,
   }
+}
+
+/// Format a system time as per RFC 2822.
+// TODO: Perhaps it makes more sense to format time in the Eastern time
+//       zone?
+fn format_time(time: &SystemTime) -> Cow<'static, str> {
+  convert_time(time)
+    .map(|time| time.to_rfc2822().into())
+    .unwrap_or_else(|| "N/A".into())
+}
+
+/// Format a system time as a date.
+// TODO: Depending on the use case, there is an argument to be made to
+//       not emit the date relative to the local time zone but to UTC
+//       (which is the base used upstream).
+fn format_date(time: &SystemTime) -> Cow<'static, str> {
+  convert_time(time)
+    .map(|time| time.date().format("%Y-%m-%d").to_string().into())
+    .unwrap_or_else(|| "N/A".into())
 }
 
 
@@ -239,6 +285,7 @@ async fn events(client: Client, events: Events) -> Result<(), Error> {
 async fn ticker(client: Client, ticker: Ticker) -> Result<(), Error> {
   match ticker {
     Ticker::Get { symbol } => ticker_get(client, symbol).await,
+    Ticker::News(news) => ticker_news(client, news).await,
   }
 }
 
@@ -277,6 +324,33 @@ async fn ticker_get(client: Client, symbol: String) -> Result<(), Error> {
     currency = ticker.currency,
     active = ticker.active,
   );
+  Ok(())
+}
+
+
+/// Retrieve news items about a ticker and print them.
+async fn ticker_news(client: Client, news: News) -> Result<(), Error> {
+  let news = client
+    .issue::<ticker_news::Get>(news.into_request())
+    .await
+    .with_context(|| "failed to retrieve ticker news")?;
+
+  for item in news {
+    println!(r#"{date}:
+  symbols:   {symbols}
+  source:    {source}
+  title:     {title}
+  URL:       {url}
+  keywords:  {keywords}
+"#,
+      date = format_date(&item.timestamp),
+      symbols = item.symbols.join(", "),
+      source = item.source,
+      title = item.title,
+      url = item.url,
+      keywords = item.keywords.join(", "),
+    );
+  }
   Ok(())
 }
 
