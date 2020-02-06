@@ -14,8 +14,8 @@ use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Error;
 
-use chrono::offset::Local;
 use chrono::offset::TimeZone;
+use chrono::offset::Utc;
 use chrono::DateTime;
 
 use futures::TryStreamExt;
@@ -145,12 +145,12 @@ struct Events {
 
 
 /// Convert a `SystemTime` into a `DateTime`.
-fn convert_time(time: &SystemTime) -> Option<DateTime<Local>> {
+fn convert_time(time: &SystemTime) -> Option<DateTime<Utc>> {
   match time.duration_since(UNIX_EPOCH) {
     Ok(duration) => {
       let secs = duration.as_secs().try_into().unwrap();
       let nanos = duration.subsec_nanos();
-      let time = Local.timestamp(secs, nanos);
+      let time = Utc.timestamp(secs, nanos);
       Some(time)
     },
     Err(..) => None,
@@ -158,8 +158,6 @@ fn convert_time(time: &SystemTime) -> Option<DateTime<Local>> {
 }
 
 /// Format a system time as per RFC 2822.
-// TODO: Perhaps it makes more sense to format time in the Eastern time
-//       zone?
 fn format_time(time: &SystemTime) -> Cow<'static, str> {
   convert_time(time)
     .map(|time| time.to_rfc2822().into())
@@ -167,9 +165,6 @@ fn format_time(time: &SystemTime) -> Cow<'static, str> {
 }
 
 /// Format a system time as a date.
-// TODO: Depending on the use case, there is an argument to be made to
-//       not emit the date relative to the local time zone but to UTC
-//       (which is the base used upstream).
 fn format_date(time: &SystemTime) -> Cow<'static, str> {
   convert_time(time)
     .map(|time| time.date().format("%Y-%m-%d").to_string().into())
