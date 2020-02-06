@@ -32,6 +32,10 @@ default-features = false
 version = "0.3"
 default-features = false
 
+[dependencies.num-decimal]
+version = "0.1"
+default-features = false
+
 [dependencies.polyio]
 version = "0.1.1"
 default-features = false
@@ -43,6 +47,11 @@ default-features = false
 [dependencies.structopt]
 version = "0.3"
 default-features = false
+
+[dependencies.time-util]
+version = "0.2"
+default-features = false
+features = ["chrono"]
 
 [dependencies.tokio]
 version = "0.2"

@@ -20,6 +20,9 @@ use chrono::DateTime;
 
 use futures::TryStreamExt;
 
+use num_decimal::Num;
+
+use polyio::api::aggregates;
 use polyio::api::ticker;
 use polyio::api::ticker_news;
 use polyio::Client;
@@ -30,6 +33,8 @@ use polyio::Subscription;
 use serde_json::to_string as to_json;
 
 use structopt::StructOpt;
+
+use time_util::parse_system_time_from_date_str;
 
 use tokio::runtime::Runtime;
 
@@ -52,6 +57,9 @@ struct Opts {
 /// A command line client for automated trading with Alpaca.
 #[derive(Debug, StructOpt)]
 enum Command {
+  /// Retrieve aggregates of past stock related information.
+  #[structopt(name = "aggregates")]
+  Aggregates(Aggregates),
   /// Subscribe to ticker events.
   #[structopt(name = "events")]
   Events(Events),
@@ -60,6 +68,119 @@ enum Command {
   Ticker(Ticker),
 }
 
+/// Parse a `SystemTime` from a provided date.
+fn parse_date(s: &str) -> Result<SystemTime, Error> {
+  parse_system_time_from_date_str(s).ok_or_else(|| anyhow!("failed to parse date: {}", s))
+}
+
+/// Parse an `aggregates::TimeSpan` from a string.
+fn parse_time_span(s: &str) -> Result<aggregates::TimeSpan, Error> {
+  let time_span = match s {
+    "m" | "min" | "minute" => aggregates::TimeSpan::Minute,
+    "h" | "hour" => aggregates::TimeSpan::Hour,
+    "d" | "day" => aggregates::TimeSpan::Day,
+    "w" | "week" => aggregates::TimeSpan::Week,
+    "M" | "month" => aggregates::TimeSpan::Month,
+    "q" | "quarter" => aggregates::TimeSpan::Quarter,
+    "y" | "year" => aggregates::TimeSpan::Year,
+    _ => return Err(anyhow!("failed to parse time span: {}", s)),
+  };
+  Ok(time_span)
+}
+
+
+/// An enumeration representing the `ticker` command.
+#[derive(Debug, StructOpt)]
+enum Aggregates {
+  /// Query aggregates for the given symbol.
+  #[structopt(name = "get")]
+  Get(AggregatesGet),
+}
+
+#[derive(Debug, StructOpt)]
+struct AggregatesGet {
+  /// The ticker symbol to query information about.
+  symbol: String,
+  /// The multiplier to apply to the given time span.
+  multiplier: u8,
+  /// The time span to aggregate over.
+  #[structopt(parse(try_from_str = parse_time_span))]
+  time_span: aggregates::TimeSpan,
+  /// The start time of the window to retrieve aggregates for.
+  #[structopt(parse(try_from_str = parse_date))]
+  begin: SystemTime,
+  /// The end time of the window to retrieve aggregates for.
+  #[structopt(parse(try_from_str = parse_date))]
+  end: SystemTime,
+  /// Print the aggregates in JSON format.
+  #[structopt(short = "j", long = "json")]
+  json: bool,
+}
+
+/// The handler for the 'aggregates' command.
+async fn aggregates(client: Client, aggregates: Aggregates) -> Result<(), Error> {
+  match aggregates {
+    Aggregates::Get(get) => aggregates_get(client, get).await,
+  }
+}
+
+/// Format a price value.
+fn format_price(price: &Num) -> String {
+  // TODO: We should print the corresponding symbol's currency for
+  //       the sake of completeness.
+  format!("{:.2}", price)
+}
+
+/// Retrieve aggregates for a symbol and print them.
+async fn aggregates_get(client: Client, get: AggregatesGet) -> Result<(), Error> {
+  let AggregatesGet {
+    symbol,
+    multiplier,
+    time_span,
+    begin,
+    end,
+    json,
+  } = get;
+
+  let req = aggregates::AggregateReq {
+    symbol: symbol.clone(),
+    time_span,
+    multiplier,
+    start_time: begin,
+    end_time: end,
+  };
+
+  let aggregates = client
+    .issue::<aggregates::Get>(req)
+    .await
+    .with_context(|| format!("failed to retrieve aggregates for {}", symbol.clone()))?
+    .into_result()
+    .with_context(|| format!("failed to retrieve aggregates for {}", symbol))?
+    .unwrap_or_default();
+
+  for aggregate in aggregates {
+    if json {
+      let json = to_json(&aggregate).with_context(|| "failed to serialize aggregate to JSON")?;
+      println!("{}", json);
+    } else {
+      println!(r#"{time}:
+  open:    {open}
+  close:   {close}
+  low:     {low}
+  high:    {high}
+  volume:  {volume}
+"#,
+        time = format_time(&aggregate.timestamp),
+        open = format_price(&aggregate.open_price),
+        close = format_price(&aggregate.close_price),
+        low = format_price(&aggregate.low_price),
+        high = format_price(&aggregate.high_price),
+        volume = format!("{:.0}", &aggregate.volume),
+      );
+    }
+  }
+  Ok(())
+}
 
 /// An enumeration representing the `ticker` command.
 #[derive(Debug, StructOpt)]
@@ -370,6 +491,7 @@ async fn run() -> Result<(), Error> {
     Client::from_env().with_context(|| "failed to retrieve Polygon environment information")?;
 
   match opts.command {
+    Command::Aggregates(aggregates) => self::aggregates(client, aggregates).await,
     Command::Events(events) => self::events(client, events).await,
     Command::Ticker(ticker) => self::ticker(client, ticker).await,
   }
