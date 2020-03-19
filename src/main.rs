@@ -380,7 +380,7 @@ async fn events(client: Client, events: Events) -> Result<(), Error> {
     .map_err(Error::from)
     .try_for_each(|result| {
       async {
-        let events = result.unwrap();
+        let events = result.with_context(|| "failed to deserialize ticker event from JSON")?;
         if json {
           let json =
             to_json(&events).with_context(|| "failed to serialize ticker event to JSON")?;
