@@ -301,7 +301,6 @@ fn print_events(events: &[Event]) {
         println!(r#"{symbol} aggregate:
   start time:          {start_time}
   end time:            {end_time}
-  open price today:    {open_price_today}
   volume:              {volume}
   accumulated volume:  {acc_volume}
   tick open price:     {open_price}
@@ -312,7 +311,6 @@ fn print_events(events: &[Event]) {
           symbol = aggregate.symbol,
           start_time = format_time(&aggregate.start_timestamp),
           end_time = format_time(&aggregate.end_timestamp),
-          open_price_today = aggregate.open_price_today,
           volume = aggregate.volume,
           acc_volume = aggregate.accumulated_volume,
           open_price = aggregate.open_price,
