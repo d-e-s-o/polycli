@@ -155,8 +155,7 @@ async fn aggregates_get(client: Client, get: AggregatesGet) -> Result<(), Error>
     .await
     .with_context(|| format!("failed to retrieve aggregates for {}", symbol.clone()))?
     .into_result()
-    .with_context(|| format!("failed to retrieve aggregates for {}", symbol))?
-    .unwrap_or_default();
+    .with_context(|| format!("failed to retrieve aggregates for {}", symbol))?;
 
   for aggregate in aggregates {
     if json {
@@ -293,61 +292,55 @@ fn format_date(time: &SystemTime) -> Cow<'static, str> {
 }
 
 
-fn print_events(events: &[Event]) {
-  for event in events {
-    match event {
-      Event::SecondAggregate(aggregate) |
-      Event::MinuteAggregate(aggregate) => {
-        println!(r#"{symbol} aggregate:
+fn print_event(event: &Event) {
+  match event {
+    Event::SecondAggregate(aggregate) |
+    Event::MinuteAggregate(aggregate) => {
+      println!(r#"{symbol} aggregate:
   start time:          {start_time}
   end time:            {end_time}
   volume:              {volume}
-  accumulated volume:  {acc_volume}
   tick open price:     {open_price}
   tick close price:    {close_price}
   tick low price:      {low_price}
-  tick high price:     {high_price}
-  tick avg price:      {avg_price}"#,
-          symbol = aggregate.symbol,
-          start_time = format_time(&aggregate.start_timestamp),
-          end_time = format_time(&aggregate.end_timestamp),
-          volume = aggregate.volume,
-          acc_volume = aggregate.accumulated_volume,
-          open_price = aggregate.open_price,
-          close_price = aggregate.close_price,
-          low_price = aggregate.low_price,
-          high_price = aggregate.high_price,
-          avg_price = aggregate.average_price,
-        );
-      },
-      Event::Trade(trade) => {
-        // TODO: We may also want to decode and print the exchange and the conditions.
-        println!(r#"{symbol} trade:
+  tick high price:     {high_price}"#,
+        symbol = aggregate.symbol,
+        start_time = format_time(&aggregate.start_timestamp),
+        end_time = format_time(&aggregate.end_timestamp),
+        volume = aggregate.volume,
+        open_price = aggregate.open_price,
+        close_price = aggregate.close_price,
+        low_price = aggregate.low_price,
+        high_price = aggregate.high_price,
+      );
+    },
+    Event::Trade(trade) => {
+      // TODO: We may also want to decode and print the exchange and the conditions.
+      println!(r#"{symbol} trade:
   timestamp:  {time}
   price:      {price}
   quantity:   {quantity}"#,
-          symbol = trade.symbol,
-          time = format_time(&trade.timestamp),
-          price = trade.price,
-          quantity = trade.quantity,
-        );
-      },
-      Event::Quote(quote) => {
-        println!(r#"{symbol} quote:
+        symbol = trade.symbol,
+        time = format_time(&trade.timestamp),
+        price = trade.price,
+        quantity = trade.quantity,
+      );
+    },
+    Event::Quote(quote) => {
+      println!(r#"{symbol} quote:
   timestamp:     {time}
   bid price:     {bid_price}
   bid quantity:  {bid_quantity}
   ask price:     {ask_price}
   ask quantity:  {ask_quantity}"#,
-          symbol = quote.symbol,
-          time = format_time(&quote.timestamp),
-          bid_price = quote.bid_price,
-          bid_quantity = quote.bid_quantity,
-          ask_price = quote.ask_price,
-          ask_quantity = quote.ask_quantity,
-        );
-      },
-    }
+        symbol = quote.symbol,
+        time = format_time(&quote.timestamp),
+        bid_price = quote.bid_price,
+        bid_quantity = quote.bid_quantity,
+        ask_price = quote.ask_price,
+        ask_quantity = quote.ask_quantity,
+      );
+    },
   }
 }
 
@@ -378,13 +371,13 @@ async fn events(client: Client, events: Events) -> Result<(), Error> {
     .map_err(Error::from)
     .try_for_each(|result| {
       async {
-        let events = result.with_context(|| "failed to deserialize ticker event from JSON")?;
+        let event = result.with_context(|| "failed to deserialize ticker event from JSON")?;
         if json {
           let json =
-            to_json(&events).with_context(|| "failed to serialize ticker event to JSON")?;
+            to_json(&event).with_context(|| "failed to serialize ticker event to JSON")?;
           println!("{}", json);
         } else {
-          print_events(&events);
+          print_event(&event);
         }
         Ok(())
       }
