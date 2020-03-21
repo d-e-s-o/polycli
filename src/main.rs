@@ -1,6 +1,8 @@
 // Copyright (C) 2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#![type_length_limit = "536870912"]
+
 use std::borrow::Cow;
 use std::convert::TryInto;
 use std::io::stdout;
