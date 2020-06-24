@@ -28,9 +28,9 @@ use polyio::api::aggregates;
 use polyio::api::ticker;
 use polyio::api::ticker_news;
 use polyio::Client;
-use polyio::Event;
-use polyio::Stock;
-use polyio::Subscription;
+use polyio::events::Event;
+use polyio::events::Stock;
+use polyio::events::Subscription;
 
 use serde_json::to_string as to_json;
 
