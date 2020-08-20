@@ -3,6 +3,8 @@
 polycli
 =======
 
+- [Changelog](CHANGELOG.md)
+
 **polycli** is a command line application for interacting with the
 Polygon API at [polygon.io][].
 
