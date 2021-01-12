@@ -37,7 +37,7 @@ version = "0.2"
 default-features = false
 
 [dependencies.polyio]
-version = "0.6"
+version = "0.9"
 default-features = false
 
 [dependencies.serde_json]
@@ -49,14 +49,14 @@ version = "0.3"
 default-features = false
 
 [dependencies.time-util]
-version = "0.2"
+version = "0.3"
 default-features = false
 features = ["chrono"]
 
 [dependencies.tokio]
-version = "0.2"
+version = "1.0"
 default-features = false
-features = ["rt-core"]
+features = ["rt"]
 
 [dependencies.tracing]
 version = "0.1"

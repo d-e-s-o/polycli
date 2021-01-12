@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2020-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #![type_length_limit = "536870912"]
@@ -38,7 +38,7 @@ use structopt::StructOpt;
 
 use time_util::parse_system_time_from_date_str;
 
-use tokio::runtime::Runtime;
+use tokio::runtime::Builder;
 
 use tracing::subscriber::set_global_default as set_global_subscriber;
 use tracing_subscriber::filter::LevelFilter;
@@ -157,7 +157,8 @@ async fn aggregates_get(client: Client, get: AggregatesGet) -> Result<(), Error>
     .await
     .with_context(|| format!("failed to retrieve aggregates for {}", symbol.clone()))?
     .into_result()
-    .with_context(|| format!("failed to retrieve aggregates for {}", symbol))?;
+    .with_context(|| format!("failed to retrieve aggregates for {}", symbol))?
+    .unwrap_or_default();
 
   for aggregate in aggregates {
     if json {
@@ -491,7 +492,11 @@ async fn run() -> Result<(), Error> {
 }
 
 fn main() {
-  let mut rt = Runtime::new().unwrap();
+  let rt = Builder::new_current_thread()
+    .enable_io()
+    .enable_time()
+    .build()
+    .unwrap();
   let exit_code = rt
     .block_on(run())
     .map(|_| 0)
