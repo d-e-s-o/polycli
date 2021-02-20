@@ -1,4 +1,6 @@
+[![pipeline](https://gitlab.com/d-e-s-o/polycli/badges/master/pipeline.svg)](https://gitlab.com/d-e-s-o/polycli/commits/master)
 [![crates.io](https://img.shields.io/crates/v/polycli.svg)](https://crates.io/crates/polycli)
+[![rustc](https://img.shields.io/badge/rustc-1.44+-blue.svg)](https://blog.rust-lang.org/2020/06/18/Rust.1.44.1.html)
 
 polycli
 =======
