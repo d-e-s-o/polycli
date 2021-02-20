@@ -1,5 +1,7 @@
 Unreleased
 ----------
+- Enabled CI pipeline comprising building and linting of the project
+  - Added badge indicating pipeline status
 - Bumped `polyio` dependency to `0.9`
 - Bumped `time-util` dependency to `0.3`
 - Bumped `tokio` dependency to `1.0`
