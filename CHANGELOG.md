@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.1.1
+-----
 - Enabled CI pipeline comprising building and linting of the project
   - Added badge indicating pipeline status
 - Excluded unnecessary files from being contained in release bundle
